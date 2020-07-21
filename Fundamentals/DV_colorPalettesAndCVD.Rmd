@@ -1,0 +1,99 @@
+---
+title: "Data Visualisation Assignment 2"
+output:
+  word_document: default
+date: "05/02/2020"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+require(ggplot2)
+require(viridis)
+library(colorblindr)
+```
+
+# introduction
+
+# import file and prepare data
+```{r echo=FALSE}
+# get data set into mp_df
+mtcars_df <- mtcars
+
+# convert cyl column value to factor
+mtcars_df$cyl <- as.factor(mtcars_df$cyl)
+```
+
+
+# Plots
+
+# plot 1: Default ggplot colour assignment
+```{r echo=FALSE, fig.cap="Figure"}
+default_mtcars_plt <- ggplot(data = mtcars_df, aes(x = mtcars_df$mpg, y = mtcars_df$wt, colour = mtcars_df$cyl)) +
+  geom_point(size=3.0)  +
+  labs(title = "Default scatterplot of mtcars", x="miles per gallon", y="weight", color="number of cylinders") +
+  theme_bw()+
+  theme(axis.text = element_text(size=10),
+        legend.title = element_text(face="bold", size = 12),
+        legend.text = element_text(face="italic", size = 10),
+        plot.title = element_text(face="bold", size=15)) 
+
+default_mtcars_plt 
+```
+# plot 4: custom palette colours
+
+```{r echo=FALSE}
+cvd_grid(default_mtcars_plt)
+```
+If we use the default color of ggplot to plot a given data. To the readers with deutanomaly and protanomaly, two categories of colors are almost similar which makes readers difficult to identify the different categories of the data and also it's very hard to differentiate a two category of data by a reader with tritanomaly color blindness. It's better to avoid default colors in order to clearly communicate to the reader with color vision deficiency.
+
+# plot 2: custom palette colours from okabi and ito's palette
+# okabi and ito's palette colors: hex(#000000, #E69F00,#56B4E9, #009E73, #F0E442, #0072B2, #D55E00, #CC79A7)
+```{r echo=FALSE}
+okabi_ito_colors <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+okabi_ito_plt <- ggplot(data = mtcars_df, aes(x = mtcars_df$mpg, y = mtcars_df$wt, colour = mtcars_df$cyl)) +
+  geom_point(size=3.0)  +
+  labs(title = "Using okabi and ito's colors", x="miles per gallon", y="weight", color="number of cylinders") +
+  scale_colour_manual(values = okabi_ito_colors[6:8]) +
+  theme_bw()+
+  theme(axis.text = element_text(size=10),
+        legend.title = element_text(face="bold", size = 12),
+        legend.text = element_text(face="italic", size = 10),
+        plot.title = element_text(face="bold", size=15)) 
+
+okabi_ito_plt
+```
+```{r}
+cvd_grid(okabi_ito_plt)
+```
+In this plot, i used okabi and ito's color palette HEX("#0072B2", "#D55E00", "#CC79A7") to plot the given data. By using these colors, different categories of data are distinct and colors are not overwhelming the other color. These colors are suitable for both standard and color vision deficiency people. 
+
+# plot 3: custom palette colours using viridis
+```{r echo=FALSE}
+viridis_plt <- ggplot(data = mtcars_df, aes(x = mtcars_df$mpg, y = mtcars_df$wt, colour = mtcars_df$cyl)) +
+  geom_point(size=3.0)  +
+  labs(title = "viridis scatterplot of mtcars", x="miles per gallon", y="weight", color="number of cylinders") +
+  scale_colour_viridis_d() +
+  theme_bw()+
+  theme(axis.text = element_text(size=10),
+        legend.title = element_text(face="bold", size = 12),
+        legend.text = element_text(face="italic", size = 10),
+        plot.title = element_text(face="bold", size=15)) 
+
+viridis_plt
+```
+```{r echo=FALSE}
+cvd_grid(viridis_plt)
+```
+Using Viridis package to plot the given data values. These colors used by Viridis package are quite separable for color blind people and also for the standard vision people. Using this package has one more advantage that it is clearly separable on greyscale. This package is the best choice of colors for visual communication using the plot.
+
+# Conclusion:
+Both plot 2 and plot 3 are preferable from a standard and color vision deficiency perspective. Plot 2 uses okabi and ito's color palette and plot 3 uses the Viridis package. Both these plots use color-blind friendly color which makes color separable and not overwhelming to other colors.
+
+
+# 6.0  Code appendix
+```{r ref.label=knitr::all_labels(), echo = T, eval = F}
+```

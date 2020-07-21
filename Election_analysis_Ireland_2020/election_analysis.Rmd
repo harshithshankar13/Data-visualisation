@@ -1,0 +1,300 @@
+---
+title: "2016 and 2020 Election Analysis"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r include=FALSE}
+require(dplyr)
+require(tidyr)
+require(readxl)
+require(ggplot2)
+require(forcats)
+require(viridis)
+require(colorblindr)
+require(ggridges)
+```
+
+# vote
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+# votes per party in each election
+
+# read 2016 data
+ele_data_16 <- read.csv("2016-04-28_general-election-count-details-galway-west-csv_en.csv")
+#cleaning data
+ele_data_16 <- ele_data_16[ele_data_16$Count.Number == 1, c(-1, -6, -7, -9)]
+# convert party ind into independent 
+levels(ele_data_16$Party) <- c(levels(ele_data_16$Party), "Independent", "Social Democrats", "Fine Gael", "Direct Democracy Ireland")
+ele_data_16$Party[ele_data_16$Party == "Ind"] <- "Independent"
+ele_data_16$Party[ele_data_16$Party == "Social Democratic Party"] <- "Social Democrats"
+ele_data_16$Party[ele_data_16$Party == "Fine  Gael"] <- "Fine Gael"
+ele_data_16$Party[2] <- "Direct Democracy Ireland"
+# group on party and get total votes
+ele_data_16_grp <- ele_data_16 %>% group_by(Party) %>% summarise("Total_votes" = sum(Total.Votes))
+
+# get pareto chart
+# sort value based on votes
+ele_data_16_grp <- ele_data_16_grp[order(ele_data_16_grp$Total_votes, decreasing = TRUE),]
+ele_data_16_grp$Party <- factor(ele_data_16_grp$Party, levels = ele_data_16_grp$Party)
+# get cumulative sum
+ele_data_16_grp["cumulative"]  <- cumsum(ele_data_16_grp$Total_votes)
+ele_data_16_grp["cumulative_perc"]  <- floor(100 * cumsum(ele_data_16_grp$Total_votes) / sum(ele_data_16_grp$Total_votes))
+
+# read 2020 data
+ele_data_20 <- read_excel("GalwayWest-2020.xlsx", col_names=TRUE)
+#cleaning data
+ele_data_20 <- ele_data_20[-1, c(2,3,5)]
+ele_data_20 <- ele_data_20 %>% drop_na()
+colnames(ele_data_20) <- c("Party", "candidate", "votes")
+ele_data_20[3] <- sapply(sapply(ele_data_20[3],as.factor),as.integer)
+# group on party and get total votes
+ele_data_20_grp <- ele_data_20 %>% group_by(Party) %>% summarise("votes" = sum(votes))
+
+# convert into single char format
+ele_data_20_grp$Party <- iconv(ele_data_20_grp$Party, 'utf-8', 'ASCII//TRANSLIT')
+# get pareto chart
+# sort value based on votes
+ele_data_20_grp <- ele_data_20_grp[order(ele_data_20_grp$votes, decreasing = TRUE),]
+ele_data_20_grp$Party <- factor(ele_data_20_grp$Party, levels = ele_data_20_grp$Party)
+# get cumulative sum
+ele_data_20_grp["cumulative"]  <- cumsum(ele_data_20_grp$votes)
+ele_data_20_grp["cumulative_perc"]  <- floor(100 * cumsum(ele_data_20_grp$votes) / sum(ele_data_20_grp$votes))
+
+```
+
+```{r}
+# possible colours
+mycols <- c('#a6cee3','#1f78b4','#fb9a99','#b2df8a','#e31a1c','#ff7f00','#fdbf6f','#33a02c','#cab2d6')
+
+
+party.colours <- c('Fine  Gael' = '#1f78b4', 'Fine Gael' = '#1f78b4', 'Fianna Fail' = '#33a02c', 'Sinn Fein' = 'darkolivegreen', 'Labour Party' = '#e31a1c',  'Green Party' = '#b2df8a', 'Social Democrats' ='#cab2d6','#fb9a99', 'Independent' = 'darkgrey', 'Renua' = '#ff7f00', 'Direct Democracy Ireland' ='darkgrey', 'Direct Democracy Ireland' = 'darkgrey', 	'AAA' ='darkgrey', "OTH"='#fb9a99',"Solidarity-PBP"= '#fdbf6f', 'Aontu'='darkolivegreen')
+```
+
+```{r echo=FALSE}
+theme_set(theme_classic())
+
+ggplot(ele_data_16_grp, aes(x = Party, fill=Party)) +
+  geom_col(aes(y = Total_votes)) +
+  geom_point(aes(y = cumulative), position=position_nudge(x = 0.4, y = 0), color="#FFA500")  +
+  geom_text(aes(y = cumulative , label = sprintf("%1.2i%%", cumulative_perc)),
+            hjust = 0,
+            vjust = 0) +
+  geom_line(aes(y = cumulative, group = 1), position=position_nudge(x = 0.4, y = 0), color = "blue") +
+  scale_y_continuous(
+    limits = c(0, 70000),
+    breaks = seq(0, 70000, by = 5000),
+    name = "Total Votes"
+  ) + 
+  scale_x_discrete( expand = c(0,1)) +
+  scale_fill_manual(values = party.colours ) +
+  labs(title = "Total votes by party in 2016, Galway west") +
+  theme(
+      legend.position = "none",
+      #axis.title.y = element_blank(),
+      axis.line.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.line.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.text.x = element_text(size = 10, vjust = 1, angle = 45, hjust = 1.0),
+      axis.title.x = element_blank(),
+      plot.title = element_text(vjust = -8, hjust = 0.25, size = 11),
+      plot.margin = margin(6, 6, 3, 3),
+      panel.background = element_blank(),
+      #panel.grid.major.y = element_line(size = 0.05, linetype = 'solid',colour = "white"),
+      panel.grid.major.y= element_blank(),
+      panel.ontop = TRUE
+      
+    ) 
+
+```
+
+```{r echo=FALSE, fig.height = 5, fig.width = 7}
+theme_set(theme_classic())
+
+ggplot(ele_data_20_grp, aes(x = Party, fill=Party)) +
+  geom_col(aes(y = votes)) +
+  geom_point(aes(y = cumulative), position=position_nudge(x = 0.4, y = 0), color="#FFA500")  +
+  geom_text(aes(y = cumulative , label = sprintf("%1.2i%%", cumulative_perc)),
+            hjust = 0,
+            vjust = 0) +
+  geom_line(aes(y = cumulative, group = 1), position=position_nudge(x = 0.4, y = 0), color = "blue") +
+  scale_y_continuous(
+    limits = c(0, 65000),
+    breaks = seq(0, 65000, by = 5000),
+    name = "Total Votes"
+  ) + 
+  scale_x_discrete( expand = c(0,1)) +
+  scale_fill_manual(values = party.colours ) +
+  scale_colour_viridis_d() +
+  ggtitle("Total votes by party in 2020, Galway west") +
+  theme(
+      legend.position = "none",
+      axis.line.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.line.x = element_blank(),
+      axis.ticks.x = element_blank(),
+      axis.text.x = element_text(size = 10, vjust = 1, angle = 45, hjust = 1.0),
+      axis.title.x = element_blank(),
+      plot.title = element_text(vjust = -8, hjust = 0.25, size = 11),
+      plot.margin = margin(6, 6, 3, 3),
+      panel.background = element_blank(),
+      panel.grid.major.y= element_blank(),
+      panel.ontop = TRUE
+    ) +
+  expand_limits(x = c(3, 10))
+
+```
+
+# 2.0 
+```{r}
+# find difference
+ele_both <- merge(x = ele_data_20_grp, y = ele_data_16_grp, by = "Party", all.x = TRUE)
+ele_both$votes_diff <- ele_both$votes - ele_both$Total_votes
+ele_both <- ele_both %>% mutate(pos = votes_diff >=0) 
+ele_both <- ele_both[complete.cases(ele_both$votes_diff),]
+
+ele_both <- ele_both[order(ele_both$votes_diff), ]
+
+ele_both$Party <- factor(ele_both$Party, levels = unique(ele_both$Partyc), ordered=TRUE)
+```
+
+```{r echo=FALSE, fig.height = 6, fig.width = 7}
+library(scales)
+changeINVote<- ggplot(ele_both, aes(x = Party, y = votes_diff, fill = Party)) + 
+  geom_col(position = "identity", alpha = 0.85, width=0.5) +
+  geom_text(aes(y = votes_diff , label = votes_diff), size = 4,
+            hjust = 0.5,
+            vjust = -0.35) +
+  #scale_y_continuous(limits = c(-5000, 3000),
+   #                  breaks = seq(-5000, 3000, by= 1000) ,
+  #                   name = "votes",
+   #                  expand=c(0,0),
+    #                 labels = scales::number_format(accuracy = 0.1)) +
+  labs(title="The change in vote per party from 2016-2020")+
+ scale_fill_manual(values=party.colours) +
+  
+    theme(
+      axis.line.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      axis.line.x = element_blank(),
+      axis.text.x = element_text(size = 10, vjust = 1, angle = 20, hjust = 1.0),
+      axis.title.x = element_blank(),
+      axis.title.y = element_blank(),
+      axis.text.y = element_blank(),
+      plot.margin = margin(10, 10, 5, 5),
+     panel.background=element_blank(),
+      #panel.grid.major.y = element_line(size = 0.2, linetype = 'solid',colour = "white"),
+      panel.ontop = TRUE,
+      legend.position = "none"
+      
+    )
+changeINVote
+```
+
+```{r}
+# national average 
+# read 2020 data
+ire_ele_data_20 <- read_excel("Irish_election_2020.xlsx", col_names=TRUE)
+
+# galway_west_average per party share
+ele_data_20_grp$vote_share <- 100 * ele_data_20_grp$votes / sum(ele_data_20_grp$votes)
+
+# Join galway west table and whole Ireland  table
+ele_data_20_grp <- merge(ele_data_20_grp, ire_ele_data_20, by = "Party", all = TRUE)
+
+ele_data_20_grp<-gather(ele_data_20_grp, key = "level", value = "share", 5:6)
+```
+
+
+```{r echo=FALSE, fig.height = 6, fig.width = 7}
+ggplot(ele_data_20_grp, aes(x=Party, y = share, fill=level) ) +
+  geom_bar(position = "dodge" ,stat = "identity") +
+  scale_y_continuous(name = "", breaks = seq(0,30,5), labels =  function(x) paste0(x, "%")) + 
+   scale_fill_manual(values = c("#CC79A7", "#0072B2"),
+                     name = NULL, labels=c("National average, 2020", "Galway west average, 2020")) +
+  labs(title = "A comparison to the national average for party share of the vote") +
+  theme_classic() +
+  theme(axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.line.y= element_blank(),
+        axis.title.x=element_blank(), 
+        axis.text.x = element_text(size = 10, vjust = 1, angle = 45, hjust = 1.0),
+        axis.text.y = element_text( size=7),
+        axis.title.y = element_text(size=9, face="bold"),
+        legend.text = element_text(size=8),
+        legend.title = element_blank(),
+        legend.position = c(0.8,0.9),
+        legend.key.size = unit(0.8,"line"),
+        plot.title=element_text( hjust=0.00, face='bold', size=11),
+        panel.background = element_blank(),
+        panel.grid.major.y = element_line(size = 0.1, linetype = 'solid', colour = "white"),
+     panel.ontop = TRUE
+        ) 
+
+```
+```{r}
+# most significant candidates
+# join candidate's first name and last name
+ele_data_16$candidate <- paste(ele_data_16$Candidate.First.Name, ele_data_16$Candidate.surname, sep = " ")
+ele_data_16 <- ele_data_16[c(5,6,7)]
+ele_data_16$candidate <- iconv(ele_data_16$candidate, 'utf-8', 'ASCII//TRANSLIT')
+#ele_data_16$Party <- iconv(ele_data_16$Party, 'utf-8', 'ASCII//TRANSLIT')
+ele_data_20$candidate <- iconv(ele_data_20$candidate, 'utf-8', 'ASCII//TRANSLIT')
+#ele_data_20$Party <- iconv(ele_data_20$Party, 'utf-8', 'ASCII//TRANSLIT')
+
+# replace ' with " "
+ele_data_16$candidate <- gsub("'", " ", ele_data_16$candidate)
+ele_data_16$candidate <- gsub("Catherine Martina Ann Connolly", "Catherine Connolly", ele_data_16$candidate)
+
+ele_data_20<-ele_data_20[order(ele_data_20$votes, decreasing = TRUE),]
+
+#
+ele_data_16 <- ele_data_16[order(ele_data_16$Total.Votes, decreasing = TRUE),]
+
+# 
+ele_cadidate_info_both <- merge(x = ele_data_20, y = ele_data_16, by = "candidate", all = TRUE)
+
+ele_cadidate_info_both <- ele_cadidate_info_both %>% drop_na()
+
+ele_cadidate_info_both<-gather(ele_cadidate_info_both, key = "year", value = "votes", 3:4)
+
+ele_cadidate_info_both <- ele_cadidate_info_both[order(ele_cadidate_info_both$votes, decreasing = TRUE),]
+```
+
+
+```{r  fig.height = 6, fig.width = 7, echo=FALSE}
+ggplot(ele_cadidate_info_both, aes(x=candidate, y = votes , fill=year) ) +
+  geom_bar(position = "dodge" ,stat = "identity") +
+  scale_y_continuous(name = "", breaks = seq(0,10000, by=1000)) + 
+   scale_fill_manual(values = c("#56B4E9", "#F0E442"),
+                     name = NULL, labels=c("Galway west, 2016", "Galway west, 2020")) +
+  labs(title = " The change in vote for the most significant candidates") +
+  theme_classic() +
+  theme(axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.line.y= element_blank(),
+        axis.title.x=element_blank(), 
+        axis.text.x = element_text(size = 10, vjust = 1, angle = 25, hjust = 1.0),
+        axis.text.y = element_text( size=7),
+        axis.title.y = element_text(size=9, face="bold"),
+        legend.text = element_text(size=8),
+        legend.title = element_blank(),
+        legend.position = c(0.8,0.9),
+        legend.key.size = unit(0.8,"line"),
+        plot.title=element_text( hjust=0.00, face='bold', size=11),
+        panel.background = element_blank(),
+        panel.grid.major.y = element_line(size = 0.1, linetype = 'solid', colour = "white"),
+     panel.ontop = TRUE
+        ) 
+
+```
+# 6.0  Code appendix
+```{r ref.label=knitr::all_labels(), echo = T, eval = F}
+```
+

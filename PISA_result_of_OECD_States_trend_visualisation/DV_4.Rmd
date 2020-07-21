@@ -1,0 +1,270 @@
+---
+title: "DV_Assignment_4"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+```
+
+# Part 2
+```{r}
+# read data
+pisa <- read.csv("OECD_PISA.csv")
+```
+
+```{r}
+# rename column names
+pisa <- pisa %>% rename(Location =  ï..LOCATION)
+pisa$Location <- lapply(pisa$Location, as.character)
+
+# update states full names
+pisa$Location[pisa$Location  == "IDN"] <- "Indonesia"
+pisa$Location[pisa$Location == "BRA"] <- "Brazil"
+pisa$Location[pisa$Location == "COL"] <- "Colombia"
+pisa$Location[pisa$Location == "MEX"] <- "Mexico"
+pisa$Location[pisa$Location == "CRI"] <- "Costa Rica"
+pisa$Location[pisa$Location == "GRC"] <- "Greece"
+pisa$Location[pisa$Location == "SVK"] <- "Slovak Republic"
+pisa$Location[pisa$Location == "CHL"] <- "Chile"
+pisa$Location[pisa$Location == "ISR"] <- "Israel"
+pisa$Location[pisa$Location == "TUR"] <- "Turkey"
+pisa$Location[pisa$Location == "ISL"] <- "Iceland"
+pisa$Location[pisa$Location == "LUX"] <- "Luxembourg"
+pisa$Location[pisa$Location == "LTU"] <- "Lithuania"
+pisa$Location[pisa$Location == "LVA"] <- "Latvia"
+pisa$Location[pisa$Location == "ITA"] <- "Italy"
+pisa$Location[pisa$Location == "HUN"] <- "Hungary"
+pisa$Location[pisa$Location == "RUS"] <- "Russia"
+pisa$Location[pisa$Location == "CHE"] <- "Switzerland"
+pisa$Location[pisa$Location == "NLD"] <- "Netherlands"
+pisa$Location[pisa$Location == "AUT"] <- "Austria"
+pisa$Location[pisa$Location == "OAVG"] <- "OECD - Average"
+pisa$Location[pisa$Location == "CZE"] <- "Czech Republic"
+pisa$Location[pisa$Location == "SVN"] <- "Slovenia"
+pisa$Location[pisa$Location == "NOR"] <- "Norway"
+pisa$Location[pisa$Location == "FRA"] <- "France"
+pisa$Location[pisa$Location == "PRT"] <- "Portugal"
+pisa$Location[pisa$Location == "BEL"] <- "Belgium"
+pisa$Location[pisa$Location == "DNK"] <- "Denmark"
+pisa$Location[pisa$Location == "DEU"] <- "Germany"
+pisa$Location[pisa$Location == "AUS"] <- "Australia"
+pisa$Location[pisa$Location == "SWE"] <- "Sweden"
+pisa$Location[pisa$Location == "NZL"] <- "New Zealand"
+pisa$Location[pisa$Location == "JPN"] <- "Japan"
+pisa$Location[pisa$Location == "GBR"] <- "United Kingdom"
+pisa$Location[pisa$Location == "USA"] <- "united States"
+pisa$Location[pisa$Location == "FIN"] <- "Finland"
+pisa$Location[pisa$Location == "POL"] <- "Poland"
+pisa$Location[pisa$Location == "KOR"] <- "Korea"
+pisa$Location[pisa$Location == "CAN"] <- "Canada"
+pisa$Location[pisa$Location == "IRL"] <- "Ireland"
+pisa$Location[pisa$Location == "EST"] <- "Estonia"
+```
+
+```{r}
+# preprocessing
+# filter out data other than year 2018
+pisa_pro <- pisa[pisa$TIME == 2018, ]
+# remove the data with subject TOT
+pisa_pro[pisa_pro$SUBJECT == "TOT", ] <- NA
+pisa_pro <- pisa_pro[!is.na(pisa_pro$Value), ]
+# get only 3 column - Location. Subject and value
+pisa_pro <- pisa_pro[c(1, 3, 7)]
+
+```
+
+```{r}
+# arrange rows in the ascending order by Value
+pisa_pro <- pisa_pro %>% arrange(Value)
+pisa_pro$Location <-
+  factor(pisa_pro$Location,
+         levels = unique(pisa_pro$Location),
+         ordered = TRUE)
+
+# seperate values for boys and girls
+pisa_pro_sep <- pisa_pro %>% spread(SUBJECT, Value)
+```
+
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+# assign red colour at the position of the Ireland else blue
+colors <-
+  ifelse(pisa_pro[pisa_pro$SUBJECT == "BOY",]$Location == "Ireland", "#FF0000", "blue")
+colors <- c(colors, "blue")
+axis_colors <-
+  ifelse(pisa_pro[pisa_pro$SUBJECT == "BOY",]$Location == "Ireland", "#FF0000", "grey37")
+# Assign diamond shape which fills colour at the position of the Ireland.
+shape_cus <-
+  ifelse(pisa_pro[pisa_pro$SUBJECT == "BOY",]$Location == "Ireland", 19, 19)
+# Assign different shape for BOYS and GIRLS
+shape_cus <-
+  c(shape_cus, ifelse(pisa_pro[pisa_pro$SUBJECT == "GIRL",]$Location == "Ireland", 23, 5))
+
+# ggplot
+ggplot(pisa_pro) +
+  # draw data points on the plot 
+  geom_point(aes(x = Location, y = Value, colour = Location, shape = SUBJECT, size = SUBJECT, fill = Location)) +
+   # draw data points for Ireland for GIRLS which is Diamond shape which fills colour on the plot 
+  geom_point(aes(x = pisa_pro[(pisa_pro$Location == "Ireland" & pisa_pro$SUBJECT == "GIRL"),]$Location, y = pisa_pro[(pisa_pro$Location == "Ireland" & pisa_pro$SUBJECT == "GIRL"),]$Value), shape = 23, fill = 'red', size = 3, color = 'red') + 
+ # Draw vertical white line till BOY data points
+  geom_segment(data = pisa_pro_sep, aes(x = Location, y = 340, xend = Location, yend = BOY - 3) , colour = "white") + 
+  # Draw vertical blue line from BOY data points to GIRLS data points
+  geom_segment(data = pisa_pro_sep, aes( x = Location, y = (BOY + 2), xend = Location, yend = (GIRL - 3)), colour = "#406d89") +
+  # Place the y-axis labels on left side of the plot
+  annotate("text", x = -0.5 , y = seq(340, 560, 20), label = seq(340, 560, 20), size = 3, vjust = -0.4, color = '#6c6a6b', 
+ ha = "left") +
+  scale_y_continuous(name = "", breaks = seq(340, 560, 20)) +
+  scale_x_discrete(expand = expand_scale(mult = c(0.06, 0.03))) +
+  scale_fill_manual(values = colors, name = NULL) +
+  scale_shape_manual(values = c(19, c(5, 23)), labels = c("Boys", "Girls")) +
+  scale_size_manual(values = c(3, 2.5)) +
+  scale_colour_manual(values = colors, breaks = c("Boys", "Girls")) +
+  theme_classic() +
+  guides(fill = FALSE, size = FALSE) +
+  theme(axis.line.x = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.line.y = element_blank(),
+    axis.title.x = element_blank(),
+    panel.background = element_rect(fill = "#e1edf3"),
+    axis.text.x = element_text(
+      size = 8,
+      family = "sans",
+      vjust = 1,
+      angle = 45,
+      hjust = 1.0,
+      colour = axis_colors),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank(),
+    legend.text = element_text(size = 10),
+    legend.title = element_blank(),
+    legend.position = "bottom",
+    legend.justification = "left",
+    legend.direction = "horizontal",
+    legend.key.size = unit(0.8, "line"),
+    plot.title = element_text(hjust = 0.00, face = 'bold', size = 11),
+    panel.grid.major.y = element_line(
+      size = 0.4,
+      linetype = 'solid',
+      colour = "white"
+    ),
+    plot.margin = margin(10, 10, 5, 5)
+  ) 
+```
+# Part 3
+```{r}
+# select country based on per capita income - 2 low (Indonesia, Brazil) , 2 mid (Finland, Japan) and 2 high (Switzerland, Ireland).
+pisa_pc <- pisa[pisa$Location == "Indonesia" ,]
+pisa_pc <- rbind(pisa_pc, pisa[pisa$Location == "Brazil" ,])
+pisa_pc <- rbind(pisa_pc, pisa[pisa$Location == "Finland" ,])
+pisa_pc <- rbind(pisa_pc, pisa[pisa$Location == "Japan" ,])
+pisa_pc <- rbind(pisa_pc, pisa[pisa$Location == "Switzerland" ,])
+pisa_pc <- rbind(pisa_pc, pisa[pisa$Location == "Ireland" ,])
+pisa_pc$Location <- as.factor(unlist(pisa_pc$Location))
+
+# take subject = TOT
+pisa_pc <- pisa_pc[pisa_pc$SUBJECT == 'TOT',]
+
+# take selective columns
+pisa_pc <- pisa_pc[, c(1, 6, 7)]
+
+# to add labels at the end.
+ydup_pos <- pisa_pc[pisa_pc$TIME == "2018",]$Value
+
+# move ireland label away from finland label
+ydup_pos[6] <- ydup_pos[6] - 6
+```
+  
+  
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+# line plot with scatter plot
+ggplot(pisa_pc, aes(x = TIME, y = Value, fill = Location, color = Location, shape = Location)) +
+  # draw data points with shape on the plot
+  geom_point(size=2) +
+  # draw line which connects data points
+  geom_line(size = 1) +
+  # Place the y-axis labels on left side of the plot
+  annotate("text", x = 1999.2, y = seq(340, 550, 25), label = seq(340, 550, 25), size = 3, vjust=-0.6, color = '#6c6a6b') + 
+  scale_x_continuous( breaks = seq(2000, 2018, 3), expand = expand_scale(mult = c(0.02,0.01))) +
+  scale_y_continuous(limits = c(340, 550), breaks = seq(340, 550, 25) , sec.axis = dup_axis(breaks = ydup_pos, labels = unique(
+       pisa_pc$Location), name = NULL))+
+  scale_shape_manual(values = c(18, 21, 25 , 23, 24, 22, 26)) +
+  scale_color_manual(values = c("#0072b2", "#56B4E9", "#009e73", "#E69F00","#999999","#D55E00")) +
+  scale_fill_manual(values = c("#0072b2", "#56B4E9", "#009e73", "#E69F00","#999999","#D55E00")) +
+  theme_classic() +
+  guides(fill = FALSE, size = FALSE) +
+  theme(axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.line.y= element_blank(),
+        axis.title.x=element_blank(),
+        axis.text.x = element_text(size = 7, family = "sans" ,vjust = 1, color = '#88898c'),
+        axis.text.y = element_blank(),
+        axis.text.y.right = element_text(size = 10),
+        axis.title.y = element_blank(),
+        legend.position = 'none',
+        plot.title=element_text( hjust=0.00, face='bold', size=11),
+        panel.background = element_rect(fill = "#e1edf3"),
+        panel.grid.major.y = element_line(size = 0.4, linetype = 'solid', colour = "white")
+        ) 
+```
+
+# facet grouped bar chart- exam template 
+```{r}
+library(lubridate)
+pisa_pc$TIME <- factor(pisa_pc$TIME)
+#pisa_pc$TIME <- as_date(pisa_pc$TIME)
+
+# line plot with scatter plot
+ggplot(pisa_pc, aes(x = TIME, y = Value)) +
+  geom_bar(position = "dodge", stat="identity") + 
+  
+  #scale_x_date(name = "TIME", breaks = "1 year", labels=date_format("%Y") ) +
+ 
+  # Place the y-axis labels on left side of the plot
+  #annotate("text", x = 1999.2, y = seq(340, 550, 25), label = seq(340, 550, 25), size = 3, vjust=-0.6, color = '#6c6a6b') + 
+ # scale_x_continuous( breaks = seq(2000, 2018, 3), expand = expand_scale(mult = c(0.02,0.01))) +
+  scale_y_continuous(limits = c(0, 550), breaks = seq(0, 550, 75), expand = c(0,0))+
+  #scale_shape_manual(values = c(18, 21, 25 , 23, 24, 22, 26)) +
+  #scale_color_manual(values = c("#0072b2", "#56B4E9", "#009e73", "#E69F00","#999999","#D55E00")) +
+  theme_classic() +
+
+ # scale_fill_manual(values = c("#0072b2", "#56B4E9", "#009e73", "#E69F00","#999999","#D55E00")) +
+  theme(legend.position = "none",
+        plot.margin = margin(14, 7, 7, 1.5),
+        axis.title.x = element_blank(),
+        axis.title.y=element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)),
+        axis.line.y = element_blank(),
+        axis.line.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.text.y= element_text(margin = margin(0, 0, 0, 0) ,size = 7.5),
+        axis.text.x= element_text(
+      size = 8,
+      family = "sans",
+      vjust = 1,
+      angle = 45,
+      hjust = 1.0,
+      colour = axis_colors),
+        strip.text.x = element_text(size=9, face="bold"),
+        strip.background = element_blank(),
+        panel.spacing.x = unit(0.5, "mm"),
+        
+         panel.background = element_blank(),
+      panel.grid.major.y = element_line(size = 0.2, linetype = 'solid',colour = "white"),
+      panel.grid.major.x= element_blank(),
+      panel.ontop = TRUE) +
+   facet_grid(cols = vars(Location)) 
+```
+
+
+
+```{r ref.label=knitr::all_labels(), echo = T, eval = F}
+```
